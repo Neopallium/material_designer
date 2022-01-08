@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Robert G. Jakabosky <rjakabosky+neopallium@neoawareness.com>"]
 edition = "2021"
 license = "MIT"
+description = "Custom Material designer for Bevy."
 readme = "README.md"
 keywords = ["bevy", "material", "shaders", "glsl", "texture"]
 repository = "https://github.com/Neopallium/material_designer"
