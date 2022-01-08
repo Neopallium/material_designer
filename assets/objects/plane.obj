@@ -5,7 +5,7 @@
 		//material_type: "materials/only_color.material_type",
 		material_type: "materials/base_texture.material_type",
 		resources: {
-			"base_texture": Texture("textures/icon-transparent.png"),
+			"base_texture": Texture("branding/icon-transparent.png"),
 			"base_color": Color(Rgba(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)),
 		}
 	)
