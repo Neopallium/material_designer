@@ -1,0 +1,10 @@
+(
+	name: "OnlyColor",
+	pipeline: (
+		vertex: "shaders/only_color.vert",
+		fragment: Some("shaders/only_color.frag"),
+	),
+	resource_types: {
+		"base_color": Color,
+	}
+)

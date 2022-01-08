@@ -1,0 +1,11 @@
+(
+	shape: Cube(2.0),
+  translation: (0.0, 2.0, 0.0),
+	material: (
+		material_type: "materials/base_texture.material_type",
+		resources: {
+			"base_texture": Texture("textures/icon.png"),
+			"base_color": Color(Rgba(red: 0.0, green: 1.0, blue: 0.0, alpha: 1.0)),
+		}
+	)
+)

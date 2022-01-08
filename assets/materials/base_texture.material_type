@@ -1,0 +1,11 @@
+(
+	name: "BaseTexture",
+	pipeline: (
+		vertex: "shaders/base_texture.vert",
+		fragment: Some("shaders/base_texture.frag"),
+	),
+	resource_types: {
+		"base_texture": Texture,
+		"base_color": Color,
+	}
+)
