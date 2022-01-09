@@ -11,6 +11,6 @@ layout(set = 2, binding = 2) uniform sampler base_texture_sampler;
 
 void main() {
 	vec4 output_color = color;
-  output_color *= texture(sampler2D(base_texture, base_texture_sampler), v_Uv);
+  output_color += texture(sampler2D(base_texture, base_texture_sampler), v_Uv);
   o_Target = output_color;
 }

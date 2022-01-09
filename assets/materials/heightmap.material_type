@@ -1,0 +1,11 @@
+(
+	name: "Heightmap",
+	pipeline: (
+		vertex: "shaders/heightmap.vert",
+		fragment: Some("shaders/heightmap.frag"),
+	),
+	resource_types: {
+		"heightmap": Texture,
+		"details": Texture,
+	}
+)

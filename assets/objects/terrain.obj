@@ -1,0 +1,16 @@
+(
+	shape: Grid(
+		size: 512,
+		scale: 1.0,
+	),
+  translation: (-256.0, -130.0, 0.0),
+	material: (
+		//material_type: "materials/only_color.material_type",
+		material_type: "materials/heightmap.material_type",
+		resources: {
+			//"base_color": Color(Rgba(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)),
+			"heightmap": Texture("terrain/real1_grayscale.png"),
+			"details": Texture("terrain/real1_hillshaded.png"),
+		}
+	)
+)

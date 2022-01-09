@@ -1,11 +1,10 @@
 (
 	shape: Plane(10.0),
-  translation: (0.0, 0.0, 0.0),
+  translation: (-8.0, 0.0, 3.0),
 	material: (
-		//material_type: "materials/only_color.material_type",
 		material_type: "materials/base_texture.material_type",
 		resources: {
-			"base_color": Color(Rgba(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0)),
+			"base_color": Color(Rgba(red: 0.0, green: 0.0, blue: 0.2, alpha: 1.0)),
 			"base_texture": Texture("branding/icon-transparent.png"),
 		}
 	)
