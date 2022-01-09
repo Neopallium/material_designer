@@ -26,19 +26,80 @@ fn name_to_idx(name: &str) -> usize {
   idx
 }
 
+
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq)]
+pub enum CapsuleUvProfile {
+  Aspect,
+  Uniform,
+  Fixed,
+}
+
+impl From<CapsuleUvProfile> for shape::CapsuleUvProfile {
+  fn from(uv_profile: CapsuleUvProfile) -> Self {
+    use shape::CapsuleUvProfile::*;
+    match uv_profile {
+      CapsuleUvProfile::Aspect => Aspect,
+      CapsuleUvProfile::Uniform => Uniform,
+      CapsuleUvProfile::Fixed => Fixed,
+    }
+  }
+}
+
 #[derive(Deserialize, Clone, Debug, PartialEq)]
 pub enum ObjectShape {
   Box(f32, f32, f32),
+  Capsule {
+    radius: f32,
+    rings: usize,
+    depth: f32,
+    latitudes: usize,
+    longitudes: usize,
+    uv_profile: CapsuleUvProfile,
+  },
   Cube(f32),
+  Icosphere {
+    radius: f32,
+    subdivisions: usize,
+  },
   Plane(f32),
+  Quad {
+    size: Vec2,
+    flip: bool,
+  },
+  Torus {
+    radius: f32,
+    ring_radius: f32,
+    subdivisions_segments: usize,
+    subdivisions_sides: usize,
+  }
 }
 
 impl ObjectShape {
   fn mesh(&self) -> Mesh {
     match *self {
-      ObjectShape::Box(x, y, z) => Mesh::from(shape::Box::new(x, y, z)),
-      ObjectShape::Cube(size) => Mesh::from(shape::Cube::new(size)),
-      ObjectShape::Plane(size) => Mesh::from(shape::Plane { size }),
+      ObjectShape::Box(x, y, z) =>
+        Mesh::from(shape::Box::new(x, y, z)),
+      ObjectShape::Capsule { radius, rings, depth, latitudes, longitudes, uv_profile } =>
+        Mesh::from(shape::Capsule {
+          radius, rings, depth, latitudes, longitudes,
+          uv_profile: uv_profile.into(),
+        }),
+      ObjectShape::Cube(size) =>
+        Mesh::from(shape::Cube::new(size)),
+      ObjectShape::Icosphere { radius, subdivisions } =>
+        Mesh::from(shape::Icosphere {
+          radius, subdivisions
+        }),
+      ObjectShape::Plane(size) =>
+        Mesh::from(shape::Plane { size }),
+      ObjectShape::Quad { size, flip } =>
+        Mesh::from(shape::Quad {
+          size, flip
+        }),
+      ObjectShape::Torus { radius, ring_radius, subdivisions_segments, subdivisions_sides } =>
+        Mesh::from(shape::Torus {
+          radius, ring_radius, subdivisions_segments, subdivisions_sides
+        }),
     }
   }
 }
