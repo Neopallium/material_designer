@@ -14,6 +14,7 @@ use ::material_designer::*;
 fn main() {
   App::build()
     .add_plugins(DefaultPlugins)
+    .add_plugin(bevy_jpeg2k::Jpeg2KPlugin)
     // load objects from .obj files.
     .add_plugin(RonAssetPlugin::<CameraSettings>::new(&["camera"]))
     // CustomMaterial Plugin

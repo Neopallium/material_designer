@@ -10,7 +10,9 @@ keywords = ["bevy", "material", "shaders", "glsl", "texture"]
 repository = "https://github.com/Neopallium/material_designer"
 
 [dependencies]
-bevy = { version = "0.5.0", features = [] }
+bevy = { version = "0.5", features = [] }
+
+bevy_jpeg2k = "0.5"
 
 bevy_asset_ron = "0.2"
 ron = { version = "0.7", features = ["indexmap"] }
