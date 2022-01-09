@@ -1,5 +1,6 @@
 use bevy::{
   prelude::*,
+  pbr::*,
   reflect::TypeUuid,
   render::{
     camera::PerspectiveProjection,
@@ -65,6 +66,18 @@ fn setup(
 
   // Load the camera settings.
   let cam_settings: Handle<CameraSettings> = asset_server.load("settings.camera");
+
+  // light
+  commands.spawn_bundle(LightBundle {
+    transform: Transform::from_xyz(4.0, 8.0, 4.0),
+    ..Default::default()
+  });
+  // ambient light
+  commands.insert_resource(AmbientLight {
+      color: Color::WHITE,
+      brightness: 0.40,
+  });
+
   // Create camera.
   commands
     .spawn_bundle(PerspectiveCameraBundle {
