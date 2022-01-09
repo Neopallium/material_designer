@@ -1,0 +1,10 @@
+(
+	shape: Box(2.0, 3.0, 4.0),
+  translation: (0.0, 4.0, 10.0),
+	material: (
+		material_type: "materials/only_color.material_type",
+		resources: {
+			"base_color": Color(Rgba(red: 0.0, green: 1.0, blue: 0.4, alpha: 1.0)),
+		}
+	)
+)

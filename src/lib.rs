@@ -5,8 +5,11 @@ use bevy::{
     mesh::shape,
     pipeline::{PipelineDescriptor, RenderPipeline},
     render_graph::{base, AssetRenderResourcesNode, RenderGraph},
-    renderer::{RenderResource, RenderResourceIterator, RenderResources},
-    shader::ShaderStages,
+    renderer::{
+      RenderResource, RenderResourceType,
+      RenderResourceIterator, RenderResources,
+    },
+    shader::{asset_shader_defs_system, ShaderDefs, ShaderDefIterator, ShaderStages},
   },
 };
 use bevy_asset_ron::*;
@@ -19,6 +22,10 @@ lazy_static::lazy_static! {
   static ref NAME_TO_INDEX: Arc<RwLock<IndexSet<String>>> = {
     Arc::new(RwLock::new(IndexSet::new()))
   };
+
+  static ref NULL_RESOURCE: NullResource = {
+    NullResource{}
+  };
 }
 
 fn name_to_idx(name: &str) -> usize {
@@ -26,6 +33,9 @@ fn name_to_idx(name: &str) -> usize {
   idx
 }
 
+fn names_length() -> usize {
+  NAME_TO_INDEX.read().unwrap().len()
+}
 
 #[derive(Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum CapsuleUvProfile {
@@ -104,7 +114,7 @@ impl ObjectShape {
   }
 }
 
-#[derive(Deserialize, Clone, Debug, PartialEq)]
+#[derive(Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct MaterialPipeline {
   vertex: String,
   fragment: Option<String>,
@@ -128,15 +138,31 @@ pub enum MaterialResourceType {
   Texture,
 }
 
-#[derive(Deserialize, TypeUuid, Clone, Debug, PartialEq)]
+#[derive(Deserialize, TypeUuid, Clone, Debug, Default, PartialEq)]
 #[uuid = "1f4cf560-7085-11ec-a4a8-5f7c5c7eb330"]
 pub struct MaterialType {
   name: String,
   pipeline: MaterialPipeline,
   resource_types: IndexMap<String, MaterialResourceType>,
+  #[serde(skip)]
+  shader_defs: IndexMap<String, String>,
 }
 
 impl MaterialType {
+  fn init(&mut self) {
+    for key in self.resource_types.keys() {
+      self.shader_defs.insert(key.into(), key.to_uppercase());
+    }
+  }
+
+  fn get_shader_def(&self, name: &str) -> Option<&str> {
+    self.shader_defs.get(name).map(|s| s.as_str())
+  }
+
+  fn get_resource_idx(&self, name: &str) -> Option<usize> {
+    self.resource_types.get_full(name.into()).map(|(idx, _, _)| idx)
+  }
+
   fn loading(&self, asset_server: &AssetServer) -> LoadingPipeline {
     self.pipeline.loading(asset_server)
   }
@@ -175,30 +201,60 @@ pub struct ObjectAsset {
 #[derive(TypeUuid, Default)]
 #[uuid = "1b6d822c-7001-11ec-b8af-bbb1f7c4e78e"]
 pub struct CustomMaterial {
+  material_type: MaterialType,
   resources: IndexMap<usize, (String, Box<dyn RenderResource + Send + Sync>)>,
 }
 
 impl CustomMaterial {
-  pub fn new() -> Self {
+  pub fn new(material_type: &MaterialType) -> Self {
     Self {
+      material_type: material_type.clone(),
       resources: IndexMap::new()
     }
   }
 
-  pub fn insert<T: 'static + RenderResource + Send + Sync>(&mut self, name: &str, resource: T) {
-    let idx = name_to_idx(name);
-    self.resources.insert(idx, (name.into(), Box::new(resource)));
+  pub fn insert<T: 'static + RenderResource + Send + Sync>(&mut self, name: &str, resource: T) -> bool {
+    if let Some(_idx) = self.material_type.get_resource_idx(name) {
+      let idx = name_to_idx(name);
+      self.resources.insert(idx, (name.into(), Box::new(resource)));
+      true
+    } else {
+      false
+    }
+  }
+}
+
+struct NullResource {}
+
+impl RenderResource for NullResource {
+  fn resource_type(&self) -> Option<RenderResourceType> {
+    None
+  }
+
+  fn write_buffer_bytes(&self, _buffer: &mut [u8]) {}
+
+  fn buffer_byte_len(&self) -> Option<usize> {
+    None
+  }
+
+  fn texture(&self) -> Option<&Handle<Texture>> {
+    None
   }
 }
 
 impl RenderResources for CustomMaterial {
   fn render_resources_len(&self) -> usize {
-    self.resources.len()
+    // All `CustomMaterial` have to have the same number of resources.
+    names_length()
   }
 
   fn get_render_resource(&self, index: usize) -> Option<&dyn RenderResource> {
-    self.resources.get(&index)
-      .map(|(_, res)| res.as_ref() as &dyn RenderResource)
+    let res = self.resources.get(&index)
+      .map(|(_, res)| res.as_ref() as &dyn RenderResource);
+    res.or_else(|| {
+      // We must always return a RenderResource.
+      Some(&*NULL_RESOURCE as &dyn RenderResource)
+    })
   }
 
   fn get_render_resource_name(&self, index: usize) -> Option<&str> {
@@ -208,6 +264,27 @@ impl RenderResources for CustomMaterial {
 
   fn iter(&self) -> RenderResourceIterator {
     RenderResourceIterator::new(self)
+  }
+}
+
+// We use `ShaderDefs` to allow our custom material to have different
+// resources.
+impl ShaderDefs for CustomMaterial {
+  fn shader_defs_len(&self) -> usize {
+    // All `CustomMaterial` have to have the same number of resources.
+    names_length()
+  }
+
+  fn get_shader_def(&self, index: usize) -> Option<&str> {
+    let name = self.resources.get(&index)
+      .and_then(|(name, _)| {
+        self.material_type.get_shader_def(name)
+      });
+    name
+  }
+
+  fn iter_shader_defs(&self) -> ShaderDefIterator<'_> {
+    ShaderDefIterator::new(self)
   }
 }
 
@@ -227,13 +304,13 @@ struct LoadingPipeline {
 
 fn loading_material_type(
   query: Query<(Entity, &LoadingMaterialType)>,
-  material_types: Res<Assets<MaterialType>>,
+  mut material_types: ResMut<Assets<MaterialType>>,
   mut commands: Commands,
   asset_server: Res<AssetServer>,
 ) {
   for (entity, loading) in query.iter() {
     // Check if the material type definition is loaded.
-    let material_type = match material_types.get(&loading.material_type) {
+    let material_type = match material_types.get_mut(&loading.material_type) {
       Some(material_type) => material_type,
       None => {
         // Still loading.
@@ -241,11 +318,12 @@ fn loading_material_type(
       }
     };
 
-    eprintln!("MaterialType loaded: {:#?}", material_type);
+    debug!("MaterialType loaded: {:#?}", material_type);
+    material_type.init();
     commands.entity(entity)
       .remove::<LoadingMaterialType>()
       .insert(material_type.loading(&asset_server))
-      .insert(loading.material_type.clone());
+      .insert(material_type.clone());
   }
 }
 
@@ -268,7 +346,7 @@ fn loading_pipeline(
       continue;
     }
 
-    eprintln!("Shaders are loaded: {:#?}", obj);
+    debug!("Shaders are loaded: {:#?}", obj);
     // Create a new shader pipeline with shaders loaded from the asset directory
     let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
       vertex: loading.vertex.clone(),
@@ -284,25 +362,29 @@ fn loading_pipeline(
 }
 
 fn spawn_object(
-  query: Query<(Entity, &LoadedPipeline, &ObjectAsset)>,
+  query: Query<(Entity, &LoadedPipeline, &ObjectAsset, &MaterialType)>,
   mut commands: Commands,
   asset_server: Res<AssetServer>,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<CustomMaterial>>,
 ) {
-  for (entity, loaded, obj) in query.iter() {
-    eprintln!("Shader pipeline is loaded: {:#?}", obj);
+  for (entity, loaded, obj, material_type) in query.iter() {
+    debug!("Shader pipeline is loaded: {:#?}", material_type);
 
+    info!("Spawn object: {:#?}", obj);
     // Create a new material
-    let mut material = CustomMaterial::new();
+    let mut material = CustomMaterial::new(&material_type);
     for (key, res) in &obj.material.resources {
-      match res {
+      let valid = match res {
         MaterialResource::Color(color) =>
           material.insert(key, *color),
         MaterialResource::Texture(texture) => {
           let texture: Handle<Texture> = asset_server.load(texture.as_str());
-          material.insert(key, texture);
+          material.insert(key, texture)
         },
+      };
+      if !valid {
+        error!("Try to set an invalid resource field: {:?} => {:?}", key, res);
       }
     }
     let material = materials.add(material);
@@ -342,13 +424,16 @@ fn update_objects(
         info!("Update material: {:?}", new_obj.material);
         if let Some(material) = materials.get_mut(material) {
           for (key, res) in &new_obj.material.resources {
-            match res {
+            let valid = match res {
               MaterialResource::Color(color) =>
                 material.insert(key, *color),
               MaterialResource::Texture(texture) => {
                 let texture: Handle<Texture> = asset_server.load(texture.as_str());
-                material.insert(key, texture);
+                material.insert(key, texture)
               },
+            };
+            if !valid {
+              error!("Try to set an invalid resource field: {:?} => {:?}", key, res);
             }
           }
         }
@@ -440,6 +525,10 @@ impl Plugin for CustomMaterialPlugin {
       .add_system(spawn_object.system())
       .add_system(watch_objects.system())
       .add_system(update_objects.system())
+      .add_system_to_stage(
+        CoreStage::PostUpdate,
+        asset_shader_defs_system::<CustomMaterial>.system(),
+      )
       .add_asset::<CustomMaterial>()
       ;
 

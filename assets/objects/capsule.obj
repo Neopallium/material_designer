@@ -1,0 +1,17 @@
+(
+	shape: Capsule(
+		radius: 1.0,
+		rings: 2,
+		depth: 2.0,
+		latitudes: 10,
+		longitudes: 10,
+		uv_profile: Uniform,
+	),
+  translation: (1.0, 2.0, 1.0),
+	material: (
+		material_type: "materials/only_color.material_type",
+		resources: {
+			"base_color": Color(Rgba(red: 0.0, green: 0.0, blue: 1.0, alpha: 0.3)),
+		}
+	)
+)

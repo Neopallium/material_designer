@@ -7,8 +7,6 @@ layout(set = 2, binding = 0) uniform base_color {
 };
 
 void main() {
-	vec4 output_color = color;
-  output_color *= 0.5;
-  o_Target = output_color;
+  o_Target = color;
 }
 
