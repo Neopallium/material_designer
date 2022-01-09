@@ -1,10 +1,16 @@
-# [![Material Designer](assets/branding/icon.png)](https://github.com/Neopallium/material_designer)
+# Material Designer
+[![Material Designer](assets/branding/icon.png)](https://github.com/Neopallium/material_designer)
 
 Design custom materials for Bevy.
 
 - Loads objects, materials from simple settings files.
 - **Hot-reloading** of shaders, textures, and other material/object settings.
 - Try out custom materials/shaders with different shapes/textures.
+
+## Screenshot
+
+Showing all example objects:
+[![Terrain](assets/branding/screenshot.jpg)](https://github.com/Neopallium/material_designer)
 
 ## Files for Camera/Objects/Materials
 
